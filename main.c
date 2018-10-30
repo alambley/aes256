@@ -108,9 +108,8 @@ int main(int argc, char *argv[]){
   printf("Message is... \n%s\n", message);
   AES256MainCBC(key, byteBuffer, iv, strlen(message), returnBuffer, &returnlen, true);
   printf("Encrypted data is...\n%s",bytes_to_hexstr(returnBuffer, returnlen));
-  // uint8_t *newBuffer = (uint8_t*)malloc((uint32_t)MAX_MSG_LGTH);
-  // AES256MainECB(key, returnBuffer, returnlen, newBuffer, &returnlen, false);
-  // printf("Unencrypted data is...\n%s",bytes_to_hexstr(newBuffer, returnlen));
-  // if(!proof)
-  //   printf("Unencrypted message is...\n%s\n",bytes_to_str(newBuffer, returnlen));
+  uint8_t *newBuffer = (uint8_t*)malloc((uint32_t)MAX_MSG_LGTH);
+  AES256MainCBC(key, returnBuffer, iv, returnlen, newBuffer, &returnlen, false);
+  printf("Unencrypted data is...\n%s",bytes_to_hexstr(newBuffer, returnlen));
+  printf("Unencrypted message is...\n%s\n",bytes_to_str(newBuffer, returnlen));
 }

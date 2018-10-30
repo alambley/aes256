@@ -136,15 +136,14 @@ void AES256MainCBC(uint8_t *key, uint8_t *data, uint8_t *iv, uint32_t datalen, u
       }
     }
     if(encrypt){
-      printf("%s\n", _Print_State(state));
-      printf("%s\n", _Print_State(ivState));
       state = XorState(state, ivState);
-      printf("%s\n", _Print_State(state));
       state = AES256Encrypt(state, key);
-      printf("%s\n", _Print_State(state));
       ivState = state;
     }else{
+      AES256_State temp = state;
       state = AES256Decrypt(state, key);
+      state = XorState(state, ivState);
+      ivState = temp;
     }
     for(y = 0; y < 4; y++){
       for(x = 0; x < 4; x++){
