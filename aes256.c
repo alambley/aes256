@@ -82,7 +82,7 @@ uint8_t R_Con[30] = {
   0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91,
 };
 
-void AES256Main(uint8_t *key, uint8_t *data, uint32_t datalen, uint8_t *returndata, uint32_t *returnlen, bool encrypt){
+void AES256MainECB(uint8_t *key, uint8_t *data, uint32_t datalen, uint8_t *returndata, uint32_t *returnlen, bool encrypt){
   int temp = datalen;
   int numbBlocks = ceil(datalen/16.0);
   int dataBytes = 0;
@@ -103,6 +103,49 @@ void AES256Main(uint8_t *key, uint8_t *data, uint32_t datalen, uint8_t *returnda
       state = AES256Encrypt(state, key);
     else
       state = AES256Decrypt(state, key);
+    for(y = 0; y < 4; y++){
+      for(x = 0; x < 4; x++){
+        returndata[returnBytes++] = state.x[y].x[x];
+      }
+    }
+  }
+  *returnlen = returnBytes;
+}
+
+void AES256MainCBC(uint8_t *key, uint8_t *data, uint8_t *iv, uint32_t datalen, uint8_t *returndata, uint32_t *returnlen, bool encrypt){
+  int temp = datalen;
+  int numbBlocks = ceil(datalen/16.0);
+  int dataBytes = 0;
+  int returnBytes = 0;
+  int i,x,y;
+  AES256_State ivState;
+  for(y = 0; y < 4; y++){
+    for(x = 0; x < 4; x++){
+      ivState.x[y].x[x] = iv[y * 4 + x];
+    }
+  }
+  for(i = 0; i < numbBlocks; i++){
+    AES256_State state;
+    for(y = 0; y < 4; y++){
+      for(x = 0; x < 4; x++){
+        if(dataBytes < datalen){
+          state.x[y].x[x] = data[dataBytes++];
+        }else{
+          state.x[y].x[x] = 0x00;
+        }
+      }
+    }
+    if(encrypt){
+      printf("%s\n", _Print_State(state));
+      printf("%s\n", _Print_State(ivState));
+      state = XorState(state, ivState);
+      printf("%s\n", _Print_State(state));
+      state = AES256Encrypt(state, key);
+      printf("%s\n", _Print_State(state));
+      ivState = state;
+    }else{
+      state = AES256Decrypt(state, key);
+    }
     for(y = 0; y < 4; y++){
       for(x = 0; x < 4; x++){
         returndata[returnBytes++] = state.x[y].x[x];
@@ -310,3 +353,10 @@ AES256_State InvShiftRows(AES256_State in){
   return temp;
 }
 
+AES256_State XorState(AES256_State a, AES256_State b){
+  AES256_State temp;
+  int i;
+  for(i = 0; i < 4; i++)
+    temp.x[i] = XorWord(a.x[i], b.x[i]);
+  return temp;
+}

@@ -38,14 +38,13 @@ char* bytes_to_str(uint8_t *bytes, uint32_t length){
   return buffer;
 }
 
-void parse_02X(uint8_t *key, char *arg){
+void parse_02X(uint8_t *key, char *arg, int bytes){
   int iter;
-  for(iter = 0; iter < 32; iter ++){
+  for(iter = 0; iter < bytes; iter ++){
     uint8_t tempbit;
     char temp[2] = "";
     temp[0] = (char*)arg[iter*2];
     temp[1] = (char*)arg[iter*2+1];
-    printf("%s\n", temp);
     sscanf(temp, "%02hhX", &tempbit);
     key[iter] = tempbit;
   }
@@ -65,25 +64,31 @@ int main(int argc, char *argv[]){
     0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
   };
 
+  uint8_t iv[16] = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+  };
+
   bool proof = false;
 
   char * message = "";
 
-  if(argc == 1){
-    proof = true;
-  }
-  else if(argc == 2){
-    message = argv[1];
-  }else if(argc == 3){
+  if(argc == 4){
     message = argv[1];
     char *keystring = argv[2];
     if(strlen(keystring) != 64){
-      printf("key must be 32 bytes\n");
+      printf("key must be 32 bytes (%d)\n",strlen(keystring)/2);
       exit(-1);
     }
-    parse_02X(key,keystring);
+    parse_02X(key,keystring,32);
+    char *ivstring = argv[3];
+    if(strlen(ivstring) != 32){
+      printf("iv must be 16 bytes (%d)\n",strlen(ivstring)/2);
+      exit(-1);
+    }
+    parse_02X(iv,ivstring,16);
   }else{
-    printf("Usage:\n%s [Message to encrypt]\n%s [Message to encrypt] [Key in 02x hex]\n",argv[0],argv[0]);
+    printf("Usage:\n%s [Message to encrypt] [Key in 02x hex] [IV in 02x hex]\n",argv[0]);
     exit(-1);
   }
 
@@ -98,18 +103,14 @@ int main(int argc, char *argv[]){
   uint32_t returnlen = 0;
   
   printf("Key is...\n%s", bytes_to_hexstr(key, 32));
-  if(proof){
-    printf("Data is... \n%s", bytes_to_hexstr(&proofdata,16));
-    AES256Main(key, &proofdata, 16, returnBuffer, &returnlen, true);
-  }else{
-    str_to_bytes(message, byteBuffer);
-    printf("Message is... \n%s\n", message);
-    AES256Main(key, byteBuffer, strlen(message), returnBuffer, &returnlen, true);
-  }
+  printf("IV is...\n%s", bytes_to_hexstr(iv, 16));
+  str_to_bytes(message, byteBuffer);
+  printf("Message is... \n%s\n", message);
+  AES256MainCBC(key, byteBuffer, iv, strlen(message), returnBuffer, &returnlen, true);
   printf("Encrypted data is...\n%s",bytes_to_hexstr(returnBuffer, returnlen));
-  uint8_t *newBuffer = (uint8_t*)malloc((uint32_t)MAX_MSG_LGTH);
-  AES256Main(key, returnBuffer, returnlen, newBuffer, &returnlen, false);
-  printf("Unencrypted data is...\n%s",bytes_to_hexstr(newBuffer, returnlen));
-  if(!proof)
-    printf("Unencrypted message is...\n%s\n",bytes_to_str(newBuffer, returnlen));
+  // uint8_t *newBuffer = (uint8_t*)malloc((uint32_t)MAX_MSG_LGTH);
+  // AES256MainECB(key, returnBuffer, returnlen, newBuffer, &returnlen, false);
+  // printf("Unencrypted data is...\n%s",bytes_to_hexstr(newBuffer, returnlen));
+  // if(!proof)
+  //   printf("Unencrypted message is...\n%s\n",bytes_to_str(newBuffer, returnlen));
 }
