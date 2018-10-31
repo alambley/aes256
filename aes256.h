@@ -5,13 +5,16 @@
 #include <math.h>
 
 typedef enum { false, true } bool;
-typedef struct AES256_Word { uint8_t x[4]; } AES256_Word;
-typedef struct AES256_State { AES256_Word x[4]; } AES256_State;
+typedef struct AES256_Word { uint8_t x[4]; } AES256_Word; //4 bytes
+typedef struct AES256_State { AES256_Word x[4]; } AES256_State; //16 bytes
+
+AES256_State IncState(AES256_State);
 
 AES256_State AES256Encrypt(AES256_State, uint8_t*);
 AES256_State AES256Decrypt(AES256_State, uint8_t*);
 void AES256MainECB(uint8_t*, uint8_t*, uint32_t, uint8_t*, uint32_t*, bool);
 void AES256MainCBC(uint8_t*, uint8_t*, uint8_t*, uint32_t, uint8_t*, uint32_t*, bool);
+void AES256MainCTR(uint8_t*, uint8_t*, uint8_t*, uint32_t, uint8_t*, uint32_t*, bool);
 char * _Print_Word(AES256_Word);
 char * _Print_State(AES256_State);
 AES256_Word SubWord(AES256_Word, bool);

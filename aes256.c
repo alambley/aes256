@@ -154,6 +154,43 @@ void AES256MainCBC(uint8_t *key, uint8_t *data, uint8_t *iv, uint32_t datalen, u
   *returnlen = returnBytes;
 }
 
+void AES256MainCTR(uint8_t *key, uint8_t *data, uint8_t *iv, uint32_t datalen, uint8_t *returndata, uint32_t *returnlen, bool encrypt){
+  int temp = datalen;
+  int numbBlocks = ceil(datalen/16.0);
+  int dataBytes = 0;
+  int returnBytes = 0;
+  int i,x,y;
+  AES256_State ivState;
+  for(y = 0; y < 4; y++){
+    for(x = 0; x < 4; x++){
+      ivState.x[y].x[x] = iv[y * 4 + x];
+    }
+  }
+  for(i = 0; i < numbBlocks; i++){
+    AES256_State state;
+    for(y = 0; y < 4; y++){
+      for(x = 0; x < 4; x++){
+        if(dataBytes < datalen){
+          state.x[y].x[x] = data[dataBytes++];
+        }else{
+          state.x[y].x[x] = 0x00;
+        }
+      }
+    }
+    AES256_State temp = AES256Encrypt(ivState, key);
+    state = XorState(state,temp);
+    ivState = IncState(ivState);
+    for(y = 0; y < 4; y++){
+      for(x = 0; x < 4; x++){
+        if(returnBytes == datalen)
+          break;
+        returndata[returnBytes++] = state.x[y].x[x];
+      }
+    }
+  }
+  *returnlen = returnBytes;
+}
+
 AES256_State AES256Encrypt(AES256_State state, uint8_t key[32]){
   AES256_Word expanse[60];
   KeyExpansion(key, expanse);
@@ -358,4 +395,21 @@ AES256_State XorState(AES256_State a, AES256_State b){
   for(i = 0; i < 4; i++)
     temp.x[i] = XorWord(a.x[i], b.x[i]);
   return temp;
+}
+
+AES256_State IncState(AES256_State a){
+  int x,y;
+  bool breakevent = false;
+  for(y = 3; y >= 0; y--){
+    for(x = 3; x >= 0; x--){
+      a.x[y].x[x] += 1;
+      if(!a.x[y].x[x] == 0)
+        breakevent = true;
+      if(breakevent)
+        break;
+    }
+    if(breakevent)
+      break;
+  }
+  return a;
 }
